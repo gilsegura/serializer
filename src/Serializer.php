@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Serializer;
 
-use ProxyAssert\Assertion;
-
 final readonly class Serializer implements SerializerInterface
 {
     /** @codeCoverageIgnore */
@@ -13,21 +11,36 @@ final readonly class Serializer implements SerializerInterface
     {
     }
 
+    /**
+     * @template T of SerializableInterface
+     *
+     * @param array{
+     *     class: class-string<T>,
+     *     attributes: array<string, mixed>
+     * } $serializedObject
+     *
+     * @return T
+     *
+     * @throws \Throwable
+     */
     #[\Override]
     public static function deserialize(array $serializedObject): SerializableInterface
     {
-        try {
-            Assertion::keyExists($serializedObject, 'class');
-            Assertion::keyExists($serializedObject, 'attributes');
-
-            Assertion::implementsInterface($serializedObject['class'], SerializableInterface::class);
-        } catch (\Throwable $e) {
-            throw SerializerException::throwable($e);
-        }
-
-        return $serializedObject['class']::deserialize($serializedObject['attributes']);
+        return $serializedObject['class']::deserialize(
+            $serializedObject['attributes'],
+        );
     }
 
+    /**
+     * @template T of SerializableInterface
+     *
+     * @param T $object
+     *
+     * @return array{
+     *     class: class-string<T>,
+     *     attributes: array<string, mixed>
+     * }
+     */
     #[\Override]
     public static function serialize(SerializableInterface $object): array
     {

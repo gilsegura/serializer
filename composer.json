@@ -1,19 +1,19 @@
 {
     "name": "gilsegura/serializer",
-    "description": "This is a project providing infrastructure for serialize objects.",
+    "description": "The component provides a simple contract for serializing and deserializing domain objects while preserving type information through static analysis.",
     "type": "library",
     "license": "MIT",
     "minimum-stability": "stable",
     "prefer-stable": true,
     "require": {
-        "php": ">=8.3",
-        "gilsegura/assert": "dev-main"
+        "php": "^8.4"
     },
     "require-dev": {
-        "friendsofphp/php-cs-fixer": "^3",
-        "phpstan/phpstan": "^1",
-        "phpunit/phpunit": "^11",
-        "rector/rector": "^1"
+        "friendsofphp/php-cs-fixer": "^3.95",
+        "phpstan/phpstan": "^2.1",
+        "phpstan/phpstan-strict-rules": "^2.0",
+        "phpunit/phpunit": "^13.1",
+        "rector/rector": "^2.4"
     },
     "autoload": {
         "psr-4": {
