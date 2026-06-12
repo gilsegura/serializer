@@ -11,7 +11,7 @@ interface SerializerInterface
      *
      * @param array{
      *     class: class-string<T>,
-     *     attributes: array<string, mixed>
+     *     attributes: array<array-key, mixed>
      * } $serializedObject
      *
      * @return T
@@ -27,7 +27,7 @@ interface SerializerInterface
      *
      * @return array{
      *     class: class-string<T>,
-     *     attributes: array<string, mixed>
+     *     attributes: array<array-key, mixed>
      * }
      */
     public static function serialize(SerializableInterface $object): array;

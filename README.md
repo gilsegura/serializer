@@ -1,25 +1,20 @@
-# SERIALIZER COMPONENT
+# SERIALIZER
 
-[![tests](https://github.com/gilsegura/serializer/actions/workflows/tests.yaml/badge.svg)](https://github.com/gilsegura/serializer/actions/workflows/tests.yaml)
-[![codecov](https://codecov.io/github/gilsegura/serializer/graph/badge.svg?token=6NM77DMN8O)](https://codecov.io/github/gilsegura/serializer)
-[![static analysis](https://github.com/gilsegura/serializer/actions/workflows/static-analysis.yaml/badge.svg)](https://github.com/gilsegura/serializer/actions/workflows/static-analysis.yaml)
-[![coding standards](https://github.com/gilsegura/serializer/actions/workflows/coding-standards.yaml/badge.svg)](https://github.com/gilsegura/serializer/actions/workflows/coding-standards.yaml)
+A minimal, framework-agnostic serialization contract for PHP 8.5+.
 
-A lightweight serializer component for PHP applications.
-
-The component provides a simple contract for serializing and deserializing domain objects while preserving type information through static analysis.
+`gilsegura/serializer` defines a single contract, `SerializableInterface`, that
+objects implement to convert themselves to and from a plain array, plus a
+`Serializer` facade that wraps an object together with its class name so it can
+be restored later. It also ships `Cast`, a small set of type-narrowing helpers
+for reading values out of decoded payloads under strict static analysis.
 
 ## Features
 
 * PHP 8.4+
-* Strong static typing
-* PHPStan-friendly templates
-* Immutable design
-* Framework agnostic
-* No runtime reflection
-* No exception handling: errors surface to the caller as `\Throwable`
-* No external dependencies
-* Ideal for DDD, CQRS and Event Sourcing architectures
+* A single `SerializableInterface` contract: `serialize()` / `deserialize()`
+* A `Serializer` facade producing a self-describing `{class, attributes}` shape
+* `Cast` helpers for safe, static-analysis-friendly value coercion
+* No dependencies beyond PHP itself
 
 ## Installation
 
@@ -27,160 +22,80 @@ The component provides a simple contract for serializing and deserializing domai
 composer require gilsegura/serializer
 ```
 
-## Usage
+## The contract
 
-### Creating a serializable object
-
-Implement the `SerializableInterface` contract.
+An object becomes serializable by implementing `SerializableInterface`:
 
 ```php
-<?php
-
-declare(strict_types=1);
-
+use Serializer\Cast;
 use Serializer\SerializableInterface;
 
-final readonly class UserRegistered implements SerializableInterface
+final readonly class Point implements SerializableInterface
 {
     public function __construct(
-        public string $id,
-        public string $email,
+        public int $x,
+        public int $y,
     ) {
     }
 
     public static function deserialize(array $attributes): static
     {
-        return new static(
-            $attributes['id'],
-            $attributes['email'],
+        return new self(
+            Cast::int($attributes['x'] ?? 0),
+            Cast::int($attributes['y'] ?? 0),
         );
     }
 
     public function serialize(): array
     {
-        return [
-            'id' => $this->id,
-            'email' => $this->email,
-        ];
+        return ['x' => $this->x, 'y' => $this->y];
     }
 }
 ```
 
-### Serializing an object
+`serialize()` returns the object's own attributes; `deserialize()` rebuilds it
+from them. Both sides use `array<array-key, mixed>`, so an object may serialize
+to a map (an associative object) or to a list (a collection).
+
+## The Serializer facade
+
+`Serializer` wraps an object with its class name, producing a self-describing
+structure that can be stored or transported and later restored to the exact same
+type:
 
 ```php
 use Serializer\Serializer;
 
-$event = new UserRegistered(
-    id: '1',
-    email: 'john.doe@example.com',
-);
+$serialized = Serializer::serialize(new Point(1, 2));
+// ['class' => Point::class, 'attributes' => ['x' => 1, 'y' => 2]]
 
-$serialized = Serializer::serialize($event);
+$point = Serializer::deserialize($serialized);
+// Point(1, 2)
 ```
 
-Result:
+Because the class name travels with the data, `deserialize()` returns the
+original concrete type, not a generic interface. This makes the format portable
+across process boundaries (queues, caches, storage) while staying type-safe.
+
+## Cast helpers
+
+When reading values out of a decoded payload, the values are `mixed`. `Cast`
+provides narrowing helpers that return a concrete type, keeping strict static
+analysis satisfied without scattering manual casts:
 
 ```php
-[
-    'class' => UserRegistered::class,
-    'attributes' => [
-        'id' => '1',
-        'email' => 'john.doe@example.com',
-    ],
-]
+use Serializer\Cast;
+
+Cast::string($value); // string
+Cast::int($value);    // int
+Cast::float($value);  // float
+Cast::bool($value);   // bool
+Cast::array($value);  // array<array-key, mixed>
 ```
 
-### Deserializing an object
-
-```php
-$event = Serializer::deserialize([
-    'class' => UserRegistered::class,
-    'attributes' => [
-        'id' => '1',
-        'email' => 'john.doe@example.com',
-    ],
-]);
-```
-
-PHPStan automatically infers:
-
-```php
-UserRegistered
-```
-
-from the provided `class-string`.
-
-## Validation
-
-The serializer assumes the payload is valid.
-
-The component does not define or handle any exceptions. Validation, and any exception it may raise, is left entirely to each serializable object, because only the object itself knows its serialization contract. Both `deserialize` methods are documented as `@throws \Throwable`, so any error surfaces to the caller unchanged.
-
-Example:
-
-```php
-public static function deserialize(array $attributes): static
-{
-    if (!isset($attributes['id'])) {
-        throw new \InvalidArgumentException('Missing "id"');
-    }
-
-    if (!isset($attributes['email'])) {
-        throw new \InvalidArgumentException('Missing "email"');
-    }
-
-    return new static(
-        $attributes['id'],
-        $attributes['email'],
-    );
-}
-```
-
-## Event Sourcing Example
-
-```php
-$storedEvent = [
-    'class' => UserRegistered::class,
-    'attributes' => [
-        'id' => '1',
-        'email' => 'john.doe@example.com',
-    ],
-];
-
-$event = Serializer::deserialize($storedEvent);
-```
-
-This makes the component especially useful for:
-
-* Event Sourcing
-* CQRS
-* Message buses
-* Domain events
-* Snapshots
-* Integration events
-
-## Static Analysis
-
-The component uses PHPStan templates to preserve concrete types during serialization and deserialization.
-
-```php
-$userRegistered = Serializer::deserialize([
-    'class' => UserRegistered::class,
-    'attributes' => [
-        'id' => '1',
-        'email' => 'john.doe@example.com',
-    ],
-]);
-```
-
-PHPStan infers:
-
-```php
-UserRegistered
-```
-
-without requiring casts or PHPDoc annotations.
+Each helper returns the value unchanged when it already matches the target type,
+and coerces it otherwise, falling back to a sensible empty value for
+non-coercible input.
 
 ## License
 

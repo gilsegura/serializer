@@ -16,7 +16,7 @@ final readonly class Serializer implements SerializerInterface
      *
      * @param array{
      *     class: class-string<T>,
-     *     attributes: array<string, mixed>
+     *     attributes: array<array-key, mixed>
      * } $serializedObject
      *
      * @return T
@@ -38,7 +38,7 @@ final readonly class Serializer implements SerializerInterface
      *
      * @return array{
      *     class: class-string<T>,
-     *     attributes: array<string, mixed>
+     *     attributes: array<array-key, mixed>
      * }
      */
     #[\Override]

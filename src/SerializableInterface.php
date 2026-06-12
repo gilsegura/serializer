@@ -10,14 +10,14 @@ namespace Serializer;
 interface SerializableInterface
 {
     /**
-     * @param array<string, mixed> $attributes
+     * @param array<array-key, mixed> $attributes
      *
      * @throws \Throwable
      */
     public static function deserialize(array $attributes): static;
 
     /**
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      */
     public function serialize(): array;
 }
