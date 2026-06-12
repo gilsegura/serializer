@@ -1,6 +1,6 @@
 {
     "name": "gilsegura/serializer",
-    "description": "The component provides a simple contract for serializing and deserializing domain objects while preserving type information through static analysis.",
+    "description": "A minimal, framework-agnostic serialization contract for PHP 8.5+.",
     "type": "library",
     "license": "MIT",
     "minimum-stability": "stable",

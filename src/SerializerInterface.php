@@ -7,27 +7,29 @@ namespace Serializer;
 interface SerializerInterface
 {
     /**
-     * @template T of SerializableInterface
+     * @template TAttributes of array
+     * @template TObject of SerializableInterface<TAttributes>
      *
      * @param array{
-     *     class: class-string<T>,
-     *     attributes: array<array-key, mixed>
+     *     class: class-string<TObject>,
+     *     attributes: TAttributes
      * } $serializedObject
      *
-     * @return T
+     * @return TObject
      *
      * @throws \Throwable
      */
     public static function deserialize(array $serializedObject): SerializableInterface;
 
     /**
-     * @template T of SerializableInterface
+     * @template TAttributes of array
+     * @template TObject of SerializableInterface<TAttributes>
      *
-     * @param T $object
+     * @param TObject $object
      *
      * @return array{
-     *     class: class-string<T>,
-     *     attributes: array<array-key, mixed>
+     *     class: class-string<TObject>,
+     *     attributes: TAttributes
      * }
      */
     public static function serialize(SerializableInterface $object): array;

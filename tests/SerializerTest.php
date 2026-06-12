@@ -80,6 +80,12 @@ final class SerializerTest extends TestCase
     }
 }
 
+/**
+ * @implements SerializableInterface<array{
+ *     x: int,
+ *     y: int
+ * }>
+ */
 final readonly class Point implements SerializableInterface
 {
     public function __construct(
@@ -92,8 +98,8 @@ final readonly class Point implements SerializableInterface
     public static function deserialize(array $attributes): static
     {
         return new self(
-            Cast::int($attributes['x'] ?? 0),
-            Cast::int($attributes['y'] ?? 0),
+            $attributes['x'],
+            $attributes['y']
         );
     }
 
@@ -104,6 +110,9 @@ final readonly class Point implements SerializableInterface
     }
 }
 
+/**
+ * @implements SerializableInterface<array{}>
+ */
 final readonly class EmptyObject implements SerializableInterface
 {
     #[\Override]
@@ -119,6 +128,9 @@ final readonly class EmptyObject implements SerializableInterface
     }
 }
 
+/**
+ * @implements SerializableInterface<array<int>>
+ */
 final readonly class NumberCollection implements SerializableInterface
 {
     /** @var int[] */
@@ -132,7 +144,7 @@ final readonly class NumberCollection implements SerializableInterface
     #[\Override]
     public static function deserialize(array $attributes): static
     {
-        return new self(...array_map(Cast::int(...), array_values($attributes)));
+        return new self(...$attributes);
     }
 
     #[\Override]

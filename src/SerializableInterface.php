@@ -6,18 +6,20 @@ namespace Serializer;
 
 /**
  * Contract for serializable objects.
+ *
+ * @template TAttributes of array
  */
 interface SerializableInterface
 {
     /**
-     * @param array<array-key, mixed> $attributes
+     * @param TAttributes $attributes
      *
      * @throws \Throwable
      */
     public static function deserialize(array $attributes): static;
 
     /**
-     * @return array<array-key, mixed>
+     * @return TAttributes
      */
     public function serialize(): array;
 }

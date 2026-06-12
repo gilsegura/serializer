@@ -6,22 +6,16 @@ namespace Serializer;
 
 final readonly class Serializer implements SerializerInterface
 {
-    /** @codeCoverageIgnore */
-    private function __construct()
-    {
-    }
-
     /**
-     * @template T of SerializableInterface
+     * @template TAttributes of array
+     * @template TObject of SerializableInterface<TAttributes>
      *
      * @param array{
-     *     class: class-string<T>,
-     *     attributes: array<array-key, mixed>
+     *     class: class-string<TObject>,
+     *     attributes: TAttributes
      * } $serializedObject
      *
-     * @return T
-     *
-     * @throws \Throwable
+     * @return TObject
      */
     #[\Override]
     public static function deserialize(array $serializedObject): SerializableInterface
@@ -32,13 +26,14 @@ final readonly class Serializer implements SerializerInterface
     }
 
     /**
-     * @template T of SerializableInterface
+     * @template TAttributes of array
+     * @template TObject of SerializableInterface<TAttributes>
      *
-     * @param T $object
+     * @param TObject $object
      *
      * @return array{
-     *     class: class-string<T>,
-     *     attributes: array<array-key, mixed>
+     *     class: class-string<TObject>,
+     *     attributes: TAttributes
      * }
      */
     #[\Override]
