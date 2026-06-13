@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Serializer\Tests;
 
 use PHPUnit\Framework\TestCase;
-use Serializer\Cast;
 use Serializer\SerializableInterface;
 use Serializer\Serializer;
 

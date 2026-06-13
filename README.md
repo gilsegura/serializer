@@ -5,16 +5,19 @@
 [![static analysis](https://github.com/gilsegura/serializer/actions/workflows/static-analysis.yaml/badge.svg)](https://github.com/gilsegura/serializer/actions/workflows/static-analysis.yaml)
 [![coding standards](https://github.com/gilsegura/serializer/actions/workflows/coding-standards.yaml/badge.svg)](https://github.com/gilsegura/serializer/actions/workflows/coding-standards.yaml)
 
-A minimal, framework-agnostic serialization contract for PHP 8.5+.
+A minimal, framework-agnostic serialization contract for PHP 8.4+.
 
-`gilsegura/serializer` defines a single contract, `SerializableInterface`, that objects implement to convert themselves to and from a plain array, plus a `Serializer` facade that wraps an object together with its class name so it can be restored later.
+`gilsegura/serializer` defines a single generic contract, `SerializableInterface`,
+that objects implement to convert themselves to and from a plain array, plus a
+`Serializer` facade that wraps an object together with its class name so it can
+be restored later as its exact concrete type.
 
 ## Features
 
-* PHP 8.5+
-* A single `SerializableInterface` contract: `serialize()` / `deserialize()`
-* Generic type support for precise static analysis
-* A `Serializer` facade producing a self-describing `{class, attributes}` shape
+* PHP 8.4+
+* A generic `SerializableInterface<TAttributes>` contract: `serialize()` / `deserialize()`
+* Per-implementation attribute shapes via `@implements`, fully understood by static analysis
+* A `Serializer` facade producing a self-describing `{class, attributes}` structure
 * No dependencies beyond PHP itself
 
 ## Installation
@@ -25,16 +28,16 @@ composer require gilsegura/serializer
 
 ## The contract
 
-An object becomes serializable by implementing `SerializableInterface`:
+`SerializableInterface` is generic over the shape of its attributes,
+`TAttributes`. Each implementation declares its own concrete shape with an
+`@implements` tag, so static analysis knows the exact type of every attribute on
+both sides of the round trip:
 
 ```php
 use Serializer\SerializableInterface;
 
 /**
- * @implements SerializableInterface<array{
- *     x: int,
- *     y: int
- * }>
+ * @implements SerializableInterface<array{x: int, y: int}>
  */
 final readonly class Point implements SerializableInterface
 {
@@ -44,63 +47,32 @@ final readonly class Point implements SerializableInterface
     ) {
     }
 
-    #[\Override]
     public static function deserialize(array $attributes): static
     {
-        return new self(
-            $attributes['x'],
-            $attributes['y'],
-        );
+        return new self($attributes['x'], $attributes['y']);
     }
 
-    #[\Override]
     public function serialize(): array
     {
-        return [
-            'x' => $this->x,
-            'y' => $this->y,
-        ];
+        return ['x' => $this->x, 'y' => $this->y];
     }
 }
 ```
 
-`serialize()` returns the object's own attributes and `deserialize()` rebuilds it from them.
+Because the shape is declared in `@implements`, `deserialize()` reads
+`$attributes['x']` as a typed `int` with no casts or assertions: the analyser
+already knows it is an `int`.
 
-The generic parameter of `SerializableInterface` describes the serialized representation of the object. This allows static analysis tools such as PHPStan and Psalm to infer the exact structure expected by `deserialize()` and returned by `serialize()`.
-
-For objects without attributes:
+`TAttributes` is constrained to `array`, so an implementation may serialize to a
+map (an associative object) or to a list:
 
 ```php
 /**
- * @implements SerializableInterface<array{}>
- */
-final readonly class EmptyObject implements SerializableInterface
-{
-    #[\Override]
-    public static function deserialize(array $attributes): static
-    {
-        return new self();
-    }
-
-    #[\Override]
-    public function serialize(): array
-    {
-        return [];
-    }
-}
-```
-
-Collections can use a list representation instead of an associative shape:
-
-```php
-use Serializer\SerializableInterface;
-
-/**
- * @implements SerializableInterface<list<int>>
+ * @implements SerializableInterface<array<int>>
  */
 final readonly class NumberCollection implements SerializableInterface
 {
-    /** @var list<int> */
+    /** @var int[] */
     public array $numbers;
 
     public function __construct(int ...$numbers)
@@ -108,13 +80,11 @@ final readonly class NumberCollection implements SerializableInterface
         $this->numbers = $numbers;
     }
 
-    #[\Override]
     public static function deserialize(array $attributes): static
     {
         return new self(...$attributes);
     }
 
-    #[\Override]
     public function serialize(): array
     {
         return $this->numbers;
@@ -124,49 +94,31 @@ final readonly class NumberCollection implements SerializableInterface
 
 ## The Serializer facade
 
-`Serializer` wraps an object together with its class name, producing a self-describing structure that can be stored or transported and later restored to the exact same type:
+`Serializer` wraps an object with its class name, producing a self-describing
+structure that can be stored or transported and later restored to the exact same
+type:
 
 ```php
 use Serializer\Serializer;
 
 $serialized = Serializer::serialize(new Point(1, 2));
-
-// [
-//     'class' => Point::class,
-//     'attributes' => [
-//         'x' => 1,
-//         'y' => 2,
-//     ],
-// ]
+// ['class' => Point::class, 'attributes' => ['x' => 1, 'y' => 2]]
 
 $point = Serializer::deserialize($serialized);
+// Point(1, 2)
 ```
 
-Because the class name travels with the data, `deserialize()` returns the original concrete type rather than a generic interface. This makes the format suitable for queues, caches, storage systems, or inter-process communication while preserving type information.
+Because the class name travels with the data, `deserialize()` returns the
+original concrete type rather than a generic interface. This makes the format
+portable across process boundaries (queues, caches, storage) while staying
+type-safe.
 
-## Static analysis
+## Composing serializable objects
 
-`SerializableInterface` is generic:
-
-```php
-/**
- * @template TAttributes of array
- */
-interface SerializableInterface
-{
-    /**
-     * @param TAttributes $attributes
-     */
-    public static function deserialize(array $attributes): static;
-
-    /**
-     * @return TAttributes
-     */
-    public function serialize(): array;
-}
-```
-
-This enables static analyzers to validate serialization and deserialization logic across your application and catch shape mismatches at analysis time.
+An object's `serialize()` may delegate to nested serializable objects, building
+up a tree. Each level declares its own shape, so the whole structure stays typed
+end to end. This makes `SerializableInterface` a good fit for value objects,
+domain events, and read models that need a stable, self-describing wire format.
 
 ## License
 
